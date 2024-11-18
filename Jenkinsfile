@@ -29,6 +29,7 @@ pipeline {
             steps {
                 echo "Exécution des tests..."
                 sh './mvnw test'
+                sh 'cp /var/lib/jenkins/workspace/Pipeline script/target/DevOpsProject-2.1.1.jar /var/lib/jenkins/workspace/Pipeline script/DevOpsProject-2.1.1.jar'
             }
         }
 
