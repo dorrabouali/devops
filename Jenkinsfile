@@ -1,59 +1,70 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKER_HUB_CREDENTIALS = '2' // Remplacez par l'ID de vos identifiants Docker Hub dans Jenkins
+        DOCKER_IMAGE = 'dorra98/devops' // Nom de l'image Docker à pousser
+        DOCKER_IMAGE_TAG = "${env.BUILD_NUMBER}"
+    }
+
     stages {
-        stage('GIT') {
+        stage('Checkout') {
             steps {
-                echo 'My second job pipeline'
-                checkout([$class: 'GitSCM',
-                    branches: [[name: '*/mechmech']],
-                    doGenerateSubmoduleConfigurations: false,
-                    extensions: [],
-                    submoduleCfg: [],
-                    userRemoteConfigs: [[url: 'https://github.com/BchirAyari/devops.git']]
-                ])
-            }
-        }
-        stage('Compiling') {
-            steps {
-                sh 'mvn compile'
+                git url: 'https://github.com/dorrabouali/devops.git', branch: 'main', credentialsId: '1'
             }
         }
         
-         stage('SONARQUBE') {
+        stage('Build') {
             steps {
-                sh 'mvn sonar:sonar -Dsonar.login=admin -Dsonar.password=bechir'
+                sh 'chmod +x ./mvnw'
+                echo "Nettoyage du projet..."
+                sh './mvnw clean'
+                
+                echo "Compilation du projet..."
+                sh './mvnw install'
             }
         }
         
-        stage('Jacoco') {
+        stage('Test') {
             steps {
-                script {
-                    // Launch tests with JaCoCo
-                    sh 'mvn jacoco:prepare-agent test jacoco:report'
-                }
-                // Publish JaCoCo report
-                jacoco(execPattern: 'target/jacoco.exec')
+                echo "Exécution des tests..."
+                sh './mvnw test'
             }
         }
-        stage('JUnit / Mockito') {
+
+        stage('Build Docker Image') {
+            steps {
+                echo "Construction de l'image Docker..."
+                sh 'docker build -t devops:latest .'
+            }
+        }
+        
+        stage('Push to Docker Hub') {
             steps {
                 script {
-                    sh 'mvn test'
+                    echo "Push de l'image Docker vers Docker Hub..."
+                    docker.withRegistry('', DOCKER_HUB_CREDENTIALS) {                
+                        sh "docker tag devops:latest ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG}"
+                        docker.image("${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG}").push()
+                    }
                 }
             }
         }
-        stage('Packaging') {
+        
+        stage('Deploy') {
             steps {
-                script {
-                    sh 'mvn package'
-                }
+                echo "Déploiement de l'application..."
+                sh 'docker run -d -p 8081:8080 ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG}'
             }
         }
-        stage('NEXUS') {
-            steps {
-                sh 'mvn deploy -DskipTests'
-            }
+    }
+    
+    post {
+        always {
+            echo 'Pipeline terminé.'
+        }
+        failure {
+            echo 'Erreur dans le pipeline.'
         }
     }
 }
