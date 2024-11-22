@@ -52,10 +52,11 @@ pipeline {
             }
         }
         
-        stage('Deploy') {
+        stage('Deploy with Docker Compose') {
             steps {
-                echo "Déploiement de l'application..."
-                sh 'docker run -d -p 8081:8080 ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG}'
+                echo "Déploiement avec docker-compose..."
+                sh "docker-compose down || true" // Arrêter les services existants
+                sh "docker-compose up -d" // Lancer les nouveaux services
             }
         }
     }
