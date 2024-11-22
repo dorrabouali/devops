@@ -40,7 +40,7 @@ pipeline {
             }
         }
         
-        stage('Push to Docker Hub') {
+        // stage('Push to Docker Hub') {
             steps {
                 script {
                     echo "Push de l'image Docker vers Docker Hub..."
@@ -50,7 +50,7 @@ pipeline {
                     }
                 }
             }
-        }
+        } 
         
         stage('Deploy with Docker Compose') {
             steps {
